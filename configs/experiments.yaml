@@ -1,0 +1,74 @@
+project:
+  output_root: outputs
+
+seeds: [1993, 1994, 1995]
+backbones: [vit_b16, resnet50]
+
+datasets:
+  cifar100:
+    root: data/cifar100
+    download: true
+    task_counts: [10, 20]
+  imagenet_r:
+    root: data/imagenet-r
+    task_counts: [10, 20]
+    split_manifest: data/splits/imagenet_r_80_20.csv
+    train_fraction: 0.8
+    split_seed: 2026
+
+training:
+  epochs_first: 20
+  epochs_later: 20
+  batch_size: 128
+  learning_rate_first: 0.001
+  learning_rate_later: 0.001
+  momentum: 0.9
+  weight_decay_first: 0.0005
+  weight_decay_later: 0.0002
+  milestones_first: [60, 120, 170]
+  milestones_later: [40, 70]
+  lr_decay_first: 0.1
+  lr_decay_later: 0.1
+
+evaluation:
+  batch_size: 256
+  save_logits: true
+
+runtime:
+  device: cuda
+  amp: true
+  amp_dtype: bfloat16
+  num_workers: 4
+  prefetch_factor: 1
+  dataloader_timeout_seconds: 300
+  sharing_strategy: file_system
+  deterministic: true
+  continue_on_error: false
+
+checkpointing:
+  save_backbone_once: true
+  save_optimizer: true
+
+features:
+  extraction_batch_size: 256
+  random_seed: 2026
+
+core:
+  projection_dims: [64, 128, 256, 1024]
+  projection_seed: 2029
+  flow:
+    validation_fraction: 0.10
+    validation_seed: 2041
+    random_seed: 2027
+    num_layers: 4
+    hidden_multiplier: 2
+    hidden_layers: 1
+    log_scale_clip: 3.0
+    batch_size: 512
+    eval_batch_size: 2048
+    max_epochs: 100
+    patience: 10
+    min_delta: 0.001
+    learning_rate: 0.0003
+    weight_decay: 0.00001
+    gradient_clip_norm: 5.0

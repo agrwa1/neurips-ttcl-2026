@@ -1,0 +1,30 @@
+# Python environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Raw datasets and generated experiment runs
+data/
+outputs/
+logs/
+*.log
+*.pt
+*.pth
+*.ckpt
+*.pkl
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Output data and internal testing
+figure_data/
+output/
+tests/
