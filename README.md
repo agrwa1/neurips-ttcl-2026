@@ -59,5 +59,3 @@ uv run ruff check .
 uv run pytest
 ```
 
-Migration-parity tests run when the original `matry/` repository is available as a
-sibling directory and otherwise skip automatically.

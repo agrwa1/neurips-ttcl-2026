@@ -27,9 +27,7 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
-markers = [
-  "reference: requires the sibling matry repository for migration parity",
-]
+markers = []
 
 [tool.ruff]
 line-length = 100
