@@ -3,6 +3,7 @@ name = "neurips-ttcl-2026"
 version = "0.1.0"
 description = "Bias-accumulation and flow-routing experiments for continual learning."
 readme = "README.md"
+license = "MIT"
 requires-python = "==3.10.*"
 dependencies = [
   "matplotlib>=3.8,<4",

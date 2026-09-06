@@ -66,6 +66,11 @@ def export(figure: plt.Figure, destination: Path) -> None:
     figure.savefig(destination.with_suffix(".png"), dpi=320, bbox_inches="tight")
 
 
+def export_pdf(figure: plt.Figure, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(destination.with_suffix(".pdf"), bbox_inches="tight")
+
+
 def render_tsne(args: FlowFigureSpec, destination: Path) -> None:
     dataset = args.tsne_dataset
     task_count = args.tsne_tasks
@@ -244,11 +249,12 @@ def render_flow_decomposition(args: FlowFigureSpec, destination: Path) -> None:
 
 def render_dimension_curves(
     results: CapacityResults, backbone: str, destination: Path
-) -> None:
-    panel_labels = "abcd"
+) -> list[Path]:
+    y_min = 20
+    destinations: list[Path] = []
     with plt.rc_context(paper_style()):
-        figure, axes = plt.subplots(2, 2, figsize=(11.2, 7.6), sharey=True)
-        for index, (axis, (dataset, tasks)) in enumerate(zip(axes.flat, SETTINGS)):
+        for dataset, tasks in SETTINGS:
+            figure, axis = plt.subplots(figsize=(2.75, 1.95))
             subset = results.summary[
                 (results.summary.dataset == dataset)
                 & (results.summary.backbone == backbone)
@@ -271,39 +277,49 @@ def render_dimension_curves(
                     marker=marker,
                     markevery=max(1, tasks // 10),
                     linestyle=linestyle,
-                    linewidth=1.75,
-                    markersize=4.1,
+                    linewidth=0.95,
+                    markersize=2.45,
+                    markeredgewidth=0.4,
                 )
                 axis.fill_between(
                     x,
                     np.maximum(0, mean - sd),
                     np.minimum(100, mean + sd),
                     color=color,
-                    alpha=0.10,
+                    alpha=0.08,
                     linewidth=0,
                 )
-            axis.set_title(
-                f"({panel_labels[index]}) {DATASETS[dataset]} · {tasks} tasks",
-                loc="left",
-                fontweight="bold",
-            )
             axis.set_xlabel("Tasks observed")
             axis.set_ylabel("Exact-class accuracy (%)")
             axis.set_xlim(0.7, tasks + 0.3)
-            axis.set_ylim(0, 102)
+            axis.set_ylim(y_min, 101)
             axis.set_xticks(np.arange(1, tasks + 1, 1 if tasks == 10 else 2))
-            axis.grid(axis="y", color="#D8D8D8", linewidth=0.6)
+            axis.tick_params(labelsize=6.7, width=0.65, length=2.8)
+            axis.xaxis.label.set_size(7.4)
+            axis.yaxis.label.set_size(7.4)
+            axis.grid(axis="y", color="#D8D8D8", linewidth=0.35)
             axis.set_axisbelow(True)
-        handles, labels = axes.flat[0].get_legend_handles_labels()
-        figure.legend(handles, labels, loc="lower center", ncol=4, frameon=False)
-        figure.suptitle(
-            f"{BACKBONES[backbone]}: exact-class accuracy by flow capacity",
-            fontsize=14,
-            fontweight="bold",
-        )
-        figure.tight_layout(rect=(0, 0.08, 1, 0.95))
-        export(figure, destination)
-        plt.close(figure)
+            handles, labels = axis.get_legend_handles_labels()
+            figure.legend(
+                handles,
+                labels,
+                loc="lower center",
+                ncol=2,
+                frameon=False,
+                bbox_to_anchor=(0.5, 0.01),
+                fontsize=6.15,
+                handlelength=1.8,
+                handletextpad=0.4,
+                columnspacing=0.85,
+                labelspacing=0.22,
+                borderaxespad=0.1,
+            )
+            figure.tight_layout(rect=(0, 0.155, 1, 1), pad=0.3)
+            panel_destination = destination / f"{dataset}_{tasks}tasks"
+            export_pdf(figure, panel_destination)
+            plt.close(figure)
+            destinations.append(panel_destination.with_suffix(".pdf"))
+    return destinations
 
 
 def render_dimension_table(
@@ -418,13 +434,11 @@ def generate_flow_routing_figures(
     render_tsne(args, tsne_destination)
     render_flow_decomposition(args, decomposition_destination)
     for backbone, short in (("vit_b16", "vit"), ("resnet50", "resnet")):
-        curves = output / f"flow_dimension_exact_class_curves_{short}"
+        curves = output / "dimensionality" / short
         table = output / f"flow_dimension_final_exact_class_{short}"
-        render_dimension_curves(
-            results, backbone, curves
-        )
+        destinations.extend(render_dimension_curves(results, backbone, curves))
         render_dimension_table(
             results, backbone, table
         )
-        destinations.extend([curves.with_suffix(".png"), table.with_suffix(".png")])
+        destinations.append(table.with_suffix(".png"))
     return destinations

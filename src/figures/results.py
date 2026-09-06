@@ -12,8 +12,8 @@ import pandas as pd
 DATASETS = {"cifar100": "CIFAR-100", "imagenet_r": "ImageNet-R"}
 BACKBONES = {"vit_b16": "ViT-B/16", "resnet50": "ResNet-50"}
 METHODS = {
-    "task_global_softmax": ("Task-global softmax", "#0072B2", "o", "-"),
-    "task_local_softmax": ("Task-local softmax", "#CC79A7", "d", ":"),
+    "task_global_softmax": ("Logit-based routing", "#0072B2", "o", "-"),
+    "task_local_softmax": ("Confidence-based routing", "#CC79A7", "d", ":"),
     "flow_64": ("Flow 64D", "#D55E00", "s", "-"),
     "flow_128": ("Flow 128D", "#E69F00", "D", "-"),
     "flow_256": ("Flow 256D", "#009E73", "v", "-"),

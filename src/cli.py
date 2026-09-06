@@ -234,17 +234,15 @@ def _generate_figures(args: argparse.Namespace, root: Path) -> list[Path]:
     tsne_root = imported_data / "tsne"
 
     if args.figure_command == "bias-accumulation":
-        return [
-            generate_bias_accumulation_figure(
-                args.runs_root or bias_root,
-                args.output_dir or figure_output / "bias_accumulation",
-                dataset=args.dataset,
-                backbone=args.backbone,
-                tasks=args.tasks,
-                canonical_position=args.canonical_position,
-                seeds=tuple(args.seed or (1993, 1994, 1995)),
-            )
-        ]
+        return generate_bias_accumulation_figure(
+            args.runs_root or bias_root,
+            args.output_dir or figure_output / "bias_accumulation",
+            dataset=args.dataset,
+            backbone=args.backbone,
+            tasks=args.tasks,
+            canonical_position=args.canonical_position,
+            seeds=tuple(args.seed or (1993, 1994, 1995)),
+        )
     if args.figure_command == "canonical-position":
         return [
             generate_canonical_position_figure(
@@ -277,14 +275,14 @@ def _generate_figures(args: argparse.Namespace, root: Path) -> list[Path]:
         core_root = args.experiment_root or core_root
         tsne_root = args.tsne_root or tsne_root
         figure_output = args.output_root or figure_output
-        paths = [
-            generate_bias_accumulation_figure(
-                bias_root, figure_output / "bias_accumulation"
-            ),
+        paths = generate_bias_accumulation_figure(
+            bias_root, figure_output / "bias_accumulation"
+        )
+        paths.append(
             generate_canonical_position_figure(
                 bias_root, figure_output / "bias_accumulation"
-            ),
-        ]
+            )
+        )
         paths.extend(
             generate_method_comparison_figures(
                 core_root, figure_output / "method_comparison"

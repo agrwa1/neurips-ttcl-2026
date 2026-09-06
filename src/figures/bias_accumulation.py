@@ -1,4 +1,4 @@
-"""Create the paper-ready task-global canonical destination-count figure."""
+"""Create paper-ready task-global routing-error figures."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 DATASET_LABELS = {"cifar100": "CIFAR-100", "imagenet_r": "ImageNet-R"}
@@ -52,6 +51,13 @@ def locate_capture_file(
     canonical_position: int,
 ) -> Path:
     base = root / dataset / backbone / f"tasks_{tasks:02d}" / f"seed_{seed}"
+    if not base.is_dir() and backbone in {"vit_b16", "resnet50"}:
+        # The original experiment tree used an ``_arc`` backbone suffix.
+        legacy_base = (
+            root / dataset / f"{backbone}_arc" / f"tasks_{tasks:02d}" / f"seed_{seed}"
+        )
+        if legacy_base.is_dir():
+            base = legacy_base
     pattern = f"canonical_position_{canonical_position:02d}_*/capture_by_task.csv"
     candidates = sorted(base.glob(pattern))
     completed = [path for path in candidates if (path.parent / "DONE.json").is_file()]
@@ -85,7 +91,7 @@ def load_seed_counts(args: BiasFigureSpec, seed: int) -> pd.DataFrame:
 
 def export(figure: plt.Figure, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(destination.with_suffix(".png"), dpi=320, bbox_inches="tight")
+    figure.savefig(destination.with_suffix(".pdf"), bbox_inches="tight")
 
 
 def generate_bias_accumulation_figure(
@@ -97,8 +103,8 @@ def generate_bias_accumulation_figure(
     tasks: int = 10,
     canonical_position: int = 0,
     seeds: tuple[int, ...] = (1993, 1994, 1995),
-) -> Path:
-    """Render the canonical-task destination-count figure and return its path."""
+) -> list[Path]:
+    """Render one routing-error figure per seed and return their paths."""
 
     if dataset not in DATASET_LABELS:
         raise ValueError(f"Unsupported dataset: {dataset}")
@@ -118,19 +124,13 @@ def generate_bias_accumulation_figure(
     frames = [load_seed_counts(args, seed) for seed in args.seeds]
     shared_max = max(float(frame.error_count.max()) for frame in frames)
     x_limit = max(1.0, shared_max * 1.17)
-    panel_labels = "abcdefghijklmnopqrstuvwxyz"
+    pair_output = args.output_dir / "routing_errors" / f"{args.dataset}_{args.backbone}"
+    destinations: list[Path] = []
 
     with plt.rc_context(paper_style()):
-        figure, axes = plt.subplots(
-            1,
-            len(frames),
-            figsize=(4.25 * len(frames), 4.65),
-            sharex=True,
-            sharey=True,
-            constrained_layout=True,
-        )
-        axes = np.atleast_1d(axes)
-        for index, (axis, frame, seed) in enumerate(zip(axes, frames, args.seeds)):
+        for frame, seed in zip(frames, args.seeds):
+            height = 2.55 if args.tasks == 10 else 4.5
+            figure, axis = plt.subplots(figsize=(3.25, height), constrained_layout=True)
             task_ids = frame.predicted_semantic_task.astype(int).to_numpy()
             counts = frame.error_count.astype(float).to_numpy()
             bars = axis.barh(
@@ -147,25 +147,38 @@ def generate_bias_accumulation_figure(
                 padding=3,
                 fontsize=8,
             )
-            axis.set_title(f"({panel_labels[index]}) Seed {seed}", loc="left", fontweight="bold")
-            axis.set_xlabel("Misclassified canonical examples")
+            axis.set_xlabel("Misclassified first-task examples")
             axis.set_xlim(0, x_limit)
-            axis.set_yticks(task_ids, [f"Task {task}" for task in task_ids])
+            axis.set_yticks([])
             axis.grid(axis="x", color="#D8D8D8", linewidth=0.6)
             axis.set_axisbelow(True)
-        axes[0].set_ylabel("Destination task (acquisition order)")
-        figure.suptitle(
-            "Task-Global Inference Routing Errors on First Trained Task\n"
-            f"{DATASET_LABELS[args.dataset]} · {BACKBONE_LABELS[args.backbone]} · "
-            f"{args.tasks} tasks",
-            fontsize=13,
-            fontweight="bold",
-        )
-        destination = args.output_dir / (
-            f"canonical_destination_counts_{args.dataset}_{args.backbone}_"
-            f"{args.tasks}tasks"
-        )
-        export(figure, destination)
-        plt.close(figure)
+            axis.annotate(
+                "",
+                xy=(-0.09, 0.86),
+                xytext=(-0.09, 0.14),
+                xycoords="axes fraction",
+                arrowprops={"arrowstyle": "->", "color": "black", "linewidth": 1.0},
+                annotation_clip=False,
+            )
+            axis.text(
+                -0.02,
+                0.94,
+                "Latest",
+                transform=axis.transAxes,
+                ha="right",
+                va="center",
+            )
+            axis.text(
+                -0.02,
+                0.06,
+                "Start",
+                transform=axis.transAxes,
+                ha="right",
+                va="center",
+            )
+            destination = pair_output / f"routing_errors_{args.tasks}tasks_seed_{seed}"
+            export(figure, destination)
+            plt.close(figure)
+            destinations.append(destination.with_suffix(".pdf").resolve())
 
-    return destination.with_suffix(".png")
+    return destinations

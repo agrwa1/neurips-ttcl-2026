@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .results import (
-    BACKBONES,
     DATASETS,
     CapacityResults,
     load_capacity_results,
@@ -25,9 +24,9 @@ SETTINGS = (
     ("imagenet_r", 20),
 )
 METHOD_STYLE = {
-    "task_global_softmax": ("Task-global routing", "#0072B2", "o", "-"),
-    "task_local_softmax": ("Task-local softmax routing", "#CC79A7", "D", ":"),
-    "selected_flow": ("Flow-routed", "#D55E00", "s", "-"),
+    "task_global_softmax": ("Logit-based routing", "#0072B2", "o", "-"),
+    "task_local_softmax": ("Confidence-based routing", "#CC79A7", "D", ":"),
+    "selected_flow": ("Flow routing", "#D55E00", "s", "-"),
     "offline_joint": ("Offline joint", "#4D4D4D", "X", "--"),
 }
 
@@ -51,7 +50,7 @@ def paper_style() -> dict[str, object]:
 
 def export(figure: plt.Figure, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(destination.with_suffix(".png"), dpi=320, bbox_inches="tight")
+    figure.savefig(destination.with_suffix(".pdf"), bbox_inches="tight")
 
 
 def selected_subset(results: CapacityResults, dataset: str, backbone: str, tasks: int):
@@ -79,30 +78,31 @@ def selected_subset(results: CapacityResults, dataset: str, backbone: str, tasks
     return subset
 
 
-def render_curves(results: CapacityResults, backbone: str, destination: Path) -> None:
-    panel_labels = "abcd"
+def render_curves(
+    results: CapacityResults, backbone: str, destination: Path
+) -> list[Path]:
+    y_min = 40 if backbone == "vit_b16" else 20
+    destinations: list[Path] = []
     with plt.rc_context(paper_style()):
-        figure, axes = plt.subplots(2, 2, figsize=(11.2, 7.6), sharey=True)
-        for index, (axis, (dataset, tasks)) in enumerate(zip(axes.flat, SETTINGS)):
+        for dataset, tasks in SETTINGS:
+            figure, axis = plt.subplots(figsize=(3.25, 2.35))
             subset = selected_subset(results, dataset, backbone, tasks)
             for method, (label, color, marker, linestyle) in METHOD_STYLE.items():
                 curve = subset[subset.paper_method == method].sort_values("tasks_seen")
                 x = curve.tasks_seen.to_numpy(dtype=int)
                 mean = 100 * curve.class_accuracy_mean.to_numpy(dtype=float)
                 sd = 100 * curve.class_accuracy_std.fillna(0).to_numpy(dtype=float)
-                display_label = label
-                if method == "selected_flow":
-                    display_label = f"Flow-routed ({SELECTED_FLOW[dataset]}D)"
                 axis.plot(
                     x,
                     mean,
                     color=color,
                     marker=marker,
                     markevery=max(1, tasks // 10),
-                    linewidth=1.8,
-                    markersize=4.2,
+                    linewidth=1.25,
+                    markersize=3.2,
+                    markeredgewidth=0.55,
                     linestyle=linestyle,
-                    label=display_label,
+                    label=label,
                 )
                 axis.fill_between(
                     x,
@@ -112,49 +112,37 @@ def render_curves(results: CapacityResults, backbone: str, destination: Path) ->
                     alpha=0.11,
                     linewidth=0,
                 )
-            axis.set_title(
-                f"({panel_labels[index]}) {DATASETS[dataset]} · {tasks} tasks",
-                loc="left",
-                fontweight="bold",
-            )
             axis.set_xlim(0.7, tasks + 0.3)
-            axis.set_ylim(0, 102)
+            axis.set_ylim(y_min, 101)
             axis.set_xlabel("Tasks observed")
             axis.set_ylabel("Exact-class accuracy (%)")
             axis.set_xticks(np.arange(1, tasks + 1, 1 if tasks == 10 else 2))
-            axis.grid(axis="y", color="#D8D8D8", linewidth=0.6)
+            axis.tick_params(labelsize=7.5)
+            axis.xaxis.label.set_size(8.5)
+            axis.yaxis.label.set_size(8.5)
+            axis.grid(axis="y", color="#D8D8D8", linewidth=0.45)
             axis.set_axisbelow(True)
-        handles: dict[str, object] = {}
-        for axis in axes.flat:
-            found_handles, found_labels = axis.get_legend_handles_labels()
-            for handle, label in zip(found_handles, found_labels):
-                handles.setdefault(label, handle)
-        ordered = [
-            label
-            for label in (
-                "Task-global routing",
-                "Task-local softmax routing",
-                "Flow-routed (128D)",
-                "Flow-routed (1024D)",
-                "Offline joint",
+            handles, labels = axis.get_legend_handles_labels()
+            figure.legend(
+                handles,
+                labels,
+                loc="lower center",
+                ncol=2,
+                frameon=False,
+                bbox_to_anchor=(0.5, 0.0),
+                fontsize=7.2,
+                handlelength=2.2,
+                handletextpad=0.55,
+                columnspacing=1.15,
+                labelspacing=0.35,
+                borderaxespad=0.1,
             )
-            if label in handles
-        ]
-        figure.legend(
-            [handles[label] for label in ordered],
-            ordered,
-            loc="lower center",
-            ncol=5,
-            frameon=False,
-        )
-        figure.suptitle(
-            f"{BACKBONES[backbone]}: exact-class accuracy across continual learning",
-            fontsize=14,
-            fontweight="bold",
-        )
-        figure.tight_layout(rect=(0, 0.08, 1, 0.95))
-        export(figure, destination)
-        plt.close(figure)
+            figure.tight_layout(rect=(0, 0.245, 1, 1), pad=0.45)
+            panel_destination = destination / f"{dataset}_{tasks}tasks"
+            export(figure, panel_destination)
+            plt.close(figure)
+            destinations.append(panel_destination.with_suffix(".pdf"))
+    return destinations
 
 
 def format_value(mean: float, sd: float, marker: str = "") -> str:
@@ -196,9 +184,9 @@ def render_table(results: CapacityResults, backbone: str, destination: Path) -> 
     columns = [
         "Dataset",
         "Tasks",
-        "Task-global\nrouting",
-        "Task-local softmax\nrouting",
-        "Selected flow",
+        "Logit-based\nrouting",
+        "Confidence-based\nrouting",
+        "Flow routing",
         "Offline joint",
     ]
     with plt.rc_context(paper_style()):
@@ -227,12 +215,6 @@ def render_table(results: CapacityResults, backbone: str, destination: Path) -> 
                 cell.set_facecolor("#F3F3F3")
             if (row, column) in bold_cells:
                 cell.get_text().set_fontweight("bold")
-        axis.set_title(
-            f"{BACKBONES[backbone]}: final exact-class accuracy",
-            fontsize=14,
-            fontweight="bold",
-            pad=20,
-        )
         figure.text(
             0.02,
             0.08,
@@ -253,24 +235,20 @@ def render_table(results: CapacityResults, backbone: str, destination: Path) -> 
 def generate_method_comparison_figures(
     experiment_root: Path, output_dir: Path
 ) -> list[Path]:
-    """Render the four method-comparison figures and return their paths."""
+    """Render eight standalone curves and two summary tables."""
 
     results = load_capacity_results(Path(experiment_root).resolve())
     output = Path(output_dir).resolve()
     output.mkdir(parents=True, exist_ok=True)
     destinations: list[Path] = []
     for backbone, short in (("vit_b16", "vit"), ("resnet50", "resnet")):
-        curves = output / f"method_comparison_exact_class_curves_{short}"
+        curves = output / short
         table = output / f"method_comparison_final_exact_class_{short}"
-        render_curves(
-            results,
-            backbone,
-            curves,
-        )
+        destinations.extend(render_curves(results, backbone, curves))
         render_table(
             results,
             backbone,
             table,
         )
-        destinations.extend([curves.with_suffix(".png"), table.with_suffix(".png")])
+        destinations.append(table.with_suffix(".pdf"))
     return destinations

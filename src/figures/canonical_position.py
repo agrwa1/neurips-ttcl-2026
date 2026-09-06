@@ -158,8 +158,6 @@ def generate_canonical_position_figure(
     percentages = [100.0 * counts / size for counts, size in matrices_and_sizes]
     maximum = max(float(values.max()) for values in percentages)
     color_max = max(maximum, 1.0)
-    panel_labels = "abcdefghijklmnopqrstuvwxyz"
-
     with plt.rc_context(paper_style()):
         figure, axes = plt.subplots(
             1,
@@ -171,8 +169,8 @@ def generate_canonical_position_figure(
         )
         axes = np.atleast_1d(axes)
         image = None
-        for index, (axis, seed, values, (counts, _)) in enumerate(
-            zip(axes, args.seeds, percentages, matrices_and_sizes)
+        for axis, seed, values, (counts, _) in zip(
+            axes, args.seeds, percentages, matrices_and_sizes
         ):
             image = axis.imshow(
                 values,
@@ -196,11 +194,7 @@ def generate_canonical_position_figure(
                         color=color,
                         fontsize=7.2,
                     )
-            axis.set_title(
-                f"({panel_labels[index]}) Seed {seed}",
-                loc="left",
-                fontweight="bold",
-            )
+            axis.set_title(f"Seed {seed}", fontweight="bold")
             axis.set_xlabel("Acquisition position of canonical task 0")
             axis.set_xticks(np.arange(args.tasks), np.arange(1, args.tasks + 1))
             axis.tick_params(length=0)
@@ -216,29 +210,11 @@ def generate_canonical_position_figure(
             raise RuntimeError("No heatmap was rendered.")
         colorbar = figure.colorbar(image, ax=axes, fraction=0.022, pad=0.018)
         colorbar.set_label("Canonical-task test examples routed to destination (%)")
-        figure.suptitle(
-            "Task-global routing destinations under canonical-task position intervention\n"
-            f"{DATASET_LABELS[args.dataset]} · {BACKBONE_LABELS[args.backbone]} · "
-            f"{args.tasks} tasks",
-            fontsize=13,
-            fontweight="bold",
-        )
-        figure.text(
-            0.5,
-            -0.025,
-            "Color shows percentage of all canonical-task test examples; annotations are raw "
-            "counts. Task 0 is excluded because it represents within-task class errors. "
-            "Task identities are seed-specific.",
-            ha="center",
-            fontsize=8.2,
-            color="#444444",
-        )
-
         args.output_dir.mkdir(parents=True, exist_ok=True)
         destination = args.output_dir / (
             f"canonical_position_destination_heatmap_{args.dataset}_{args.backbone}_"
-            f"{args.tasks}tasks.png"
+            f"{args.tasks}tasks.pdf"
         )
-        figure.savefig(destination, dpi=320, bbox_inches="tight")
+        figure.savefig(destination, bbox_inches="tight")
         plt.close(figure)
     return destination.resolve()
