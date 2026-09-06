@@ -68,38 +68,32 @@ uv run python -m src.cli bias run --dataset cifar100 --backbone vit_b16 \
 
 Use `--overwrite` only when intentionally replacing a completed run.
 
-### Figures and checks
+### Figures
 
-Plotting commands read the compact `figure_data/` bundle by default:
+After the experiment matrix completes, generate the figures from its saved results:
 
 ```bash
 # Per-seed routing-error distributions.
-uv run python -m src.cli figures bias-accumulation
+uv run python -m src.cli figures bias-accumulation \
+  --runs-root outputs/bias_accumulation/runs
 
 # Heatmap of routing errors as the canonical task changes position.
-uv run python -m src.cli figures canonical-position
+uv run python -m src.cli figures canonical-position \
+  --runs-root outputs/bias_accumulation/runs
 
 # Accuracy curves and final method-comparison tables.
-uv run python -m src.cli figures method-comparison
+uv run python -m src.cli figures method-comparison \
+  --experiment-root outputs/core
 ```
 
-Figures are written to `output/`. To plot new runs, add
-`--runs-root outputs/bias_accumulation/runs` or
-`--experiment-root outputs/core`, as applicable. Run the checks with:
-
-```bash
-uv run ruff check .
-uv run python -m pytest tests/test_smoke.py
-```
+Figures are written to `output/`.
 
 ## Repository layout
 
 - `src/bias_accumulation/`: canonical-task position interventions.
 - `src/core/`: classifier and flow-routing experiments.
 - `src/figures/`: deterministic paper-figure generation.
-- `figure_data/`: compact numeric inputs needed to reproduce the included figures.
 - `output/`: generated paper figures.
-- `tests/`: standalone correctness and smoke checks.
 
 ## License
 

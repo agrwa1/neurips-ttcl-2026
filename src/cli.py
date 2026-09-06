@@ -78,11 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
     method_figure.add_argument("--output-dir", type=Path)
     flow_figure = figure_commands.add_parser("flow-routing")
     flow_figure.add_argument("--experiment-root", type=Path)
-    flow_figure.add_argument("--tsne-root", type=Path)
     flow_figure.add_argument("--output-dir", type=Path)
-    flow_figure.add_argument("--tsne-dataset", choices=DATASETS, default="cifar100")
-    flow_figure.add_argument("--tsne-tasks", type=int, choices=(10, 20), default=20)
-    flow_figure.add_argument("--tsne-seed", type=int, default=1993)
     flow_figure.add_argument(
         "--decomposition-tasks", type=int, choices=(10, 20), default=20
     )
@@ -92,7 +88,6 @@ def build_parser() -> argparse.ArgumentParser:
     all_figures = figure_commands.add_parser("all")
     all_figures.add_argument("--bias-runs-root", type=Path)
     all_figures.add_argument("--experiment-root", type=Path)
-    all_figures.add_argument("--tsne-root", type=Path)
     all_figures.add_argument("--output-root", type=Path)
     return parser
 
@@ -227,11 +222,10 @@ def _add_bias_figure_arguments(
 
 
 def _generate_figures(args: argparse.Namespace, root: Path) -> list[Path]:
-    imported_data = root / "figure_data"
+    experiment_output = root / "outputs"
     figure_output = root / "output"
-    bias_root = imported_data / "bias_accumulation" / "runs"
-    core_root = imported_data / "core"
-    tsne_root = imported_data / "tsne"
+    bias_root = experiment_output / "bias_accumulation" / "runs"
+    core_root = experiment_output / "core"
 
     if args.figure_command == "bias-accumulation":
         return generate_bias_accumulation_figure(
@@ -262,18 +256,13 @@ def _generate_figures(args: argparse.Namespace, root: Path) -> list[Path]:
     if args.figure_command == "flow-routing":
         return generate_flow_routing_figures(
             args.experiment_root or core_root,
-            args.tsne_root or tsne_root,
             args.output_dir or figure_output / "flow_routing",
-            tsne_dataset=args.tsne_dataset,
-            tsne_tasks=args.tsne_tasks,
-            tsne_seed=args.tsne_seed,
             decomposition_tasks=args.decomposition_tasks,
             decomposition_dim=args.decomposition_dim,
         )
     if args.figure_command == "all":
         bias_root = args.bias_runs_root or bias_root
         core_root = args.experiment_root or core_root
-        tsne_root = args.tsne_root or tsne_root
         figure_output = args.output_root or figure_output
         paths = generate_bias_accumulation_figure(
             bias_root, figure_output / "bias_accumulation"
@@ -290,7 +279,7 @@ def _generate_figures(args: argparse.Namespace, root: Path) -> list[Path]:
         )
         paths.extend(
             generate_flow_routing_figures(
-                core_root, tsne_root, figure_output / "flow_routing"
+                core_root, figure_output / "flow_routing"
             )
         )
         return paths

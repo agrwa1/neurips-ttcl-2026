@@ -28,3 +28,4 @@ logs/
 figure_data/
 output/
 tests/
+tmp/

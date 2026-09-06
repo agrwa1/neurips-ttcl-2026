@@ -11,10 +11,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.colors import BoundaryNorm
 
-from ..data import DATASET_NUM_CLASSES
-from ..tasks import create_partition
 from .results import (
     BACKBONES,
     DATASETS,
@@ -35,11 +32,7 @@ FLOW_METHODS = ("flow_64", "flow_128", "flow_256", "flow_1024")
 @dataclass(frozen=True)
 class FlowFigureSpec:
     experiment_root: Path
-    tsne_root: Path
     output_dir: Path
-    tsne_dataset: str = "cifar100"
-    tsne_tasks: int = 20
-    tsne_seed: int = 1993
     decomposition_tasks: int = 20
     decomposition_dim: int = 1024
 
@@ -69,88 +62,6 @@ def export(figure: plt.Figure, destination: Path) -> None:
 def export_pdf(figure: plt.Figure, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(destination.with_suffix(".pdf"), bbox_inches="tight")
-
-
-def render_tsne(args: FlowFigureSpec, destination: Path) -> None:
-    dataset = args.tsne_dataset
-    task_count = args.tsne_tasks
-    seed = args.tsne_seed
-    partition = create_partition(dataset, DATASET_NUM_CLASSES[dataset], task_count, seed)
-    class_to_task = partition.task_for_class()
-    backbones = ("vit_b16", "resnet50")
-    panel_labels = "abcd"
-    task_map = plt.get_cmap("tab20", task_count)
-    task_norm = BoundaryNorm(np.arange(-0.5, task_count + 0.5), task_count)
-
-    with plt.rc_context(paper_style()):
-        figure, axes = plt.subplots(2, 2, figsize=(11.3, 8.0), constrained_layout=True)
-        task_artist = None
-        for row, backbone in enumerate(backbones):
-            source = args.tsne_root / f"{dataset}_{backbone}_tsne.npz"
-            if not source.is_file():
-                raise FileNotFoundError(f"Missing cached t-SNE coordinates: {source}")
-            with np.load(source) as archive:
-                embedding = archive["embedding"]
-                classes = archive["original_classes"].astype(np.int64)
-            tasks = np.asarray([class_to_task[int(value)] for value in classes], dtype=np.int64)
-            task_axis, class_axis = axes[row]
-            task_artist = task_axis.scatter(
-                embedding[:, 0],
-                embedding[:, 1],
-                c=tasks,
-                cmap=task_map,
-                norm=task_norm,
-                s=5,
-                alpha=0.56,
-                linewidths=0,
-                rasterized=True,
-            )
-            class_axis.scatter(
-                embedding[:, 0],
-                embedding[:, 1],
-                c=classes,
-                cmap="turbo",
-                s=5,
-                alpha=0.56,
-                linewidths=0,
-                rasterized=True,
-            )
-            for column, axis in enumerate((task_axis, class_axis)):
-                index = row * 2 + column
-                coloring = "semantic task" if column == 0 else "exact class"
-                axis.set_title(
-                    f"({panel_labels[index]}) {BACKBONES[backbone]} · colored by {coloring}",
-                    loc="left",
-                    fontweight="bold",
-                )
-                axis.set_xlabel("t-SNE 1")
-                axis.set_ylabel("t-SNE 2")
-                axis.grid(color="#E0E0E0", linewidth=0.45)
-                axis.set_axisbelow(True)
-        colorbar = figure.colorbar(
-            task_artist,
-            ax=axes[:, 0],
-            ticks=np.arange(task_count),
-            fraction=0.035,
-            pad=0.02,
-        )
-        colorbar.set_label("Task ID")
-        figure.suptitle(
-            f"Frozen-backbone representation geometry · {DATASETS[dataset]} · "
-            f"{task_count} tasks · seed {seed}",
-            fontsize=14,
-            fontweight="bold",
-        )
-        figure.text(
-            0.5,
-            0.006,
-            "Task and class labels are used only for coloring; PCA and t-SNE are label-free.",
-            ha="center",
-            fontsize=8.5,
-            color="#555555",
-        )
-        export(figure, destination)
-        plt.close(figure)
 
 
 def load_flow_decomposition(
@@ -396,28 +307,18 @@ def render_dimension_table(
 
 def generate_flow_routing_figures(
     experiment_root: Path,
-    tsne_root: Path,
     output_dir: Path,
     *,
-    tsne_dataset: str = "cifar100",
-    tsne_tasks: int = 20,
-    tsne_seed: int = 1993,
     decomposition_tasks: int = 20,
     decomposition_dim: int = 1024,
 ) -> list[Path]:
-    """Render the six flow-routing figures and return their paths."""
+    """Render flow-routing diagnostics from completed core experiments."""
 
-    if tsne_dataset not in DATASETS:
-        raise ValueError(f"Unsupported t-SNE dataset: {tsne_dataset}")
     if decomposition_dim not in (64, 128, 256, 1024):
         raise ValueError(f"Unsupported decomposition dimension: {decomposition_dim}")
     args = FlowFigureSpec(
         Path(experiment_root).resolve(),
-        Path(tsne_root).resolve(),
         Path(output_dir).resolve(),
-        tsne_dataset,
-        tsne_tasks,
-        tsne_seed,
         decomposition_tasks,
         decomposition_dim,
     )
@@ -425,13 +326,8 @@ def generate_flow_routing_figures(
     output.mkdir(parents=True, exist_ok=True)
     results = load_capacity_results(args.experiment_root)
 
-    tsne_destination = output / "frozen_latent_tsne"
     decomposition_destination = output / "flow_prediction_error_decomposition"
-    destinations = [
-        tsne_destination.with_suffix(".png"),
-        decomposition_destination.with_suffix(".png"),
-    ]
-    render_tsne(args, tsne_destination)
+    destinations = [decomposition_destination.with_suffix(".png")]
     render_flow_decomposition(args, decomposition_destination)
     for backbone, short in (("vit_b16", "vit"), ("resnet50", "resnet")):
         curves = output / "dimensionality" / short

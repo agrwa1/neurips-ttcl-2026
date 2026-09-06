@@ -18,17 +18,11 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "pytest>=8,<9",
   "ruff>=0.6,<1",
 ]
 
 [tool.uv]
 package = false
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "-ra"
-markers = []
 
 [tool.ruff]
 line-length = 100
