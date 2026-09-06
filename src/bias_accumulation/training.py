@@ -1,4 +1,4 @@
-"""ARC-style sequential linear probing with a strictly frozen backbone."""
+"""Sequential linear probing with a strictly frozen backbone."""
 
 from __future__ import annotations
 
@@ -89,9 +89,9 @@ def train_sequence(
             training_config["lr_decay_first" if first else "lr_decay_later"]
         )
 
-        # ARC recreates SGD after every expansion and gives it the entire classifier
-        # parameter tensor. Old rows therefore retain zero data-gradient but continue
-        # to receive optimizer weight decay.
+        # Recreate SGD after every expansion and give it the entire classifier
+        # parameter tensor. Old rows retain zero data-gradient but continue to receive
+        # optimizer weight decay.
         optimizer = torch.optim.SGD(
             classifier.module.parameters(),
             lr=learning_rate,
@@ -222,8 +222,8 @@ def _resolve_device(requested: str):
     device = torch.device(requested)
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError(
-            "CUDA was requested but is unavailable. Install an RTX-5090-compatible PyTorch "
-            "build (CUDA 12.8 or newer) and confirm the WSL NVIDIA driver is visible."
+            "CUDA was requested but is unavailable. Install a CUDA-compatible PyTorch "
+            "build and confirm that the NVIDIA driver is available."
         )
     if device.type == "cuda":
         major, minor = torch.cuda.get_device_capability(device)

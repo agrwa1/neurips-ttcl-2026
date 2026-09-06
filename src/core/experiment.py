@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import traceback
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -109,7 +108,7 @@ def run_core(
                 "one softmax per task's class outputs; compare each task's maximum"
             ),
         },
-        "arc_head_training": resolved["training"],
+        "classifier_training": resolved["training"],
         "flow_training": flow_config,
         "datasets": dataset_values,
         "backbones": backbone_values,
@@ -229,7 +228,6 @@ def run_core(
                                 "projection_dim": projection_dim,
                                 "error_type": type(error).__name__,
                                 "error": str(error),
-                                "traceback": traceback.format_exc(),
                             },
                         )
                         LOGGER.exception(
@@ -320,12 +318,12 @@ def _run_one_partition(
             "projection_dim": int(projected_train.shape[1]),
             "projection_shape": list(projection.shape),
             "reused_heads_from": (
-                str(reuse_heads_directory.resolve())
+                str(reuse_heads_directory.relative_to(run_directory.parent))
                 if reuse_heads_directory is not None
                 else None
             ),
             "flow_architecture": architecture,
-            "arc_head_training": resolved["training"],
+            "classifier_training": resolved["training"],
             "flow_training": flow_config,
         },
     )

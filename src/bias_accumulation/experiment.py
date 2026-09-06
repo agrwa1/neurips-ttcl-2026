@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import traceback
 from collections.abc import Iterable
 from dataclasses import asdict
 from pathlib import Path
@@ -156,8 +155,6 @@ def run_bias_accumulation(
                 "partition": partition.as_dict(),
                 "task_sequence": list(task_sequence),
                 "backbone": backbone_provenance[identity.backbone],
-                "arc_adaptive_retention": False,
-                "arc_adaptive_correction": False,
                 "test_time_updates": False,
                 "training": config["training"],
                 "evaluation": config["evaluation"],
@@ -255,7 +252,6 @@ def run_bias_accumulation(
                     "identity": asdict(identity),
                     "error_type": type(error).__name__,
                     "error": str(error),
-                    "traceback": traceback.format_exc(),
                 },
             )
             LOGGER.exception("run failed: %s", identity.run_id)

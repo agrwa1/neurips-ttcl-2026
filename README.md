@@ -40,43 +40,56 @@ Their credits and terms are summarized in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_N
 
 ### Experiments
 
-The full configured experiment matrix is:
+Run the full configured experiment matrix in this order:
 
 ```bash
+# Extract and store frozen-backbone features.
 uv run python -m src.cli core cache
+
+# Compare classifier and flow routing across all configured projection dimensions.
 uv run python -m src.cli core dimensions
+
+# Run the canonical-task position experiments.
 uv run python -m src.cli bias run
 ```
 
 Runs are resumable by default and are written to `outputs/`. Each experiment
 family records its resolved configuration and environment metadata there. Use
-the CLI's filters for smaller runs and `--overwrite` only when replacing a
-completed run intentionally.
+`--dataset`, `--backbone`, `--tasks`, and `--seed` to run a smaller subset. For
+example:
+
+```bash
+uv run python -m src.cli core cache --dataset cifar100 --backbone vit_b16
+uv run python -m src.cli core dimensions --dataset cifar100 --backbone vit_b16 \
+  --tasks 10 --seed 1993
+uv run python -m src.cli bias run --dataset cifar100 --backbone vit_b16 \
+  --tasks 10 --seed 1993 --canonical-position 0
+```
+
+Use `--overwrite` only when intentionally replacing a completed run.
 
 ### Figures and checks
 
-If the compact `figure_data/` artifact bundle is present, reproduce all paper
-figures with:
+Plotting commands read the compact `figure_data/` bundle by default:
 
 ```bash
-uv run python -m src.cli figures all
+# Per-seed routing-error distributions.
+uv run python -m src.cli figures bias-accumulation
+
+# Heatmap of routing errors as the canonical task changes position.
+uv run python -m src.cli figures canonical-position
+
+# Accuracy curves and final method-comparison tables.
+uv run python -m src.cli figures method-comparison
 ```
 
-To render the freshly generated experiment results while retaining the supplied
-t-SNE coordinates:
-
-```bash
-uv run python -m src.cli figures all \
-  --bias-runs-root outputs/bias_accumulation/runs \
-  --experiment-root outputs/core \
-  --tsne-root figure_data/tsne
-```
-
-Figures are written to `output/`. Run the checks with:
+Figures are written to `output/`. To plot new runs, add
+`--runs-root outputs/bias_accumulation/runs` or
+`--experiment-root outputs/core`, as applicable. Run the checks with:
 
 ```bash
 uv run ruff check .
-uv run pytest
+uv run python -m pytest tests/test_smoke.py
 ```
 
 ## Repository layout
@@ -86,7 +99,7 @@ uv run pytest
 - `src/figures/`: deterministic paper-figure generation.
 - `figure_data/`: compact numeric inputs needed to reproduce the included figures.
 - `output/`: generated paper figures.
-- `tests/`: standalone checks and optional migration-parity checks.
+- `tests/`: standalone correctness and smoke checks.
 
 ## License
 

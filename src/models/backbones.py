@@ -1,10 +1,10 @@
-"""ARC-equivalent ImageNet-pretrained feature extractors."""
+"""ImageNet-pretrained feature extractors."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-ARC_RESNET50_URL = "https://download.pytorch.org/models/resnet50-19c8e357.pth"
+RESNET50_IMAGENET1K_URL = "https://download.pytorch.org/models/resnet50-19c8e357.pth"
 
 
 @dataclass(frozen=True)
@@ -74,7 +74,10 @@ def build_frozen_backbone(name: str, pretrained: bool = True) -> FrozenBackbone:
         module = resnet50(weights=None)
         if pretrained:
             state_dict = torch.hub.load_state_dict_from_url(
-                ARC_RESNET50_URL, map_location="cpu", check_hash=True, progress=True
+                RESNET50_IMAGENET1K_URL,
+                map_location="cpu",
+                check_hash=True,
+                progress=True,
             )
             module.load_state_dict(state_dict, strict=True)
         module.fc = torch.nn.Identity()
@@ -83,7 +86,10 @@ def build_frozen_backbone(name: str, pretrained: bool = True) -> FrozenBackbone:
             BackboneSpec(
                 name=name,
                 feature_dim=2048,
-                source=f"ARC bundled torchvision ResNet-50 weights: {ARC_RESNET50_URL}",
+                source=(
+                    "Torchvision ResNet-50 ImageNet-1K weights: "
+                    f"{RESNET50_IMAGENET1K_URL}"
+                ),
             ),
         )
     raise KeyError(f"Unknown backbone: {name}")

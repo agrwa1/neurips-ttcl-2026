@@ -86,7 +86,7 @@ def load_capacity_results(experiment_root: Path) -> CapacityResults:
                         frames.append(_normalize_methods(frame, dimension))
                         sources.append(
                             {
-                                "path": str(path.resolve()),
+                                "path": str(path.relative_to(root)),
                                 "sha256": hashlib.sha256(contents).hexdigest(),
                             }
                         )

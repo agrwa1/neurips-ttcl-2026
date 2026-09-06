@@ -7,7 +7,6 @@ import json
 import os
 import platform
 import random
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -54,7 +53,6 @@ def environment_metadata(repository_root: str | Path) -> dict[str, Any]:
     metadata: dict[str, Any] = {
         "python": sys.version,
         "platform": platform.platform(),
-        "executable": sys.executable,
     }
     try:
         import torch
@@ -68,13 +66,4 @@ def environment_metadata(repository_root: str | Path) -> dict[str, Any]:
     except ImportError:
         metadata["torch"] = None
 
-    try:
-        metadata["git_commit"] = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"],
-            cwd=Path(repository_root),
-            text=True,
-            stderr=subprocess.DEVNULL,
-        ).strip()
-    except (OSError, subprocess.CalledProcessError):
-        metadata["git_commit"] = None
     return metadata

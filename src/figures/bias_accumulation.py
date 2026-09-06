@@ -51,13 +51,6 @@ def locate_capture_file(
     canonical_position: int,
 ) -> Path:
     base = root / dataset / backbone / f"tasks_{tasks:02d}" / f"seed_{seed}"
-    if not base.is_dir() and backbone in {"vit_b16", "resnet50"}:
-        # The original experiment tree used an ``_arc`` backbone suffix.
-        legacy_base = (
-            root / dataset / f"{backbone}_arc" / f"tasks_{tasks:02d}" / f"seed_{seed}"
-        )
-        if legacy_base.is_dir():
-            base = legacy_base
     pattern = f"canonical_position_{canonical_position:02d}_*/capture_by_task.csv"
     candidates = sorted(base.glob(pattern))
     completed = [path for path in candidates if (path.parent / "DONE.json").is_file()]
@@ -85,7 +78,6 @@ def load_seed_counts(args: BiasFigureSpec, seed: int) -> pd.DataFrame:
     # The canonical block is a within-task classification error, not cross-task capture.
     frame = frame[frame.predicted_semantic_task != 0].copy()
     frame["seed"] = seed
-    frame["source_path"] = str(path.resolve())
     return frame.sort_values("predicted_semantic_task")
 
 

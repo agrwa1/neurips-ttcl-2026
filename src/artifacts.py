@@ -122,7 +122,7 @@ def ensure_backbone_checkpoint(backbone, output_root: str | Path) -> dict[str, s
             },
         )
     return {
-        "path": str(destination.resolve()),
+        "path": str(destination.relative_to(Path(output_root))),
         "sha256": sha256_file(destination),
         "source": backbone.spec.source,
     }

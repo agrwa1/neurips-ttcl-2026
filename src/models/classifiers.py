@@ -1,4 +1,4 @@
-"""ARC/PILOT-compatible expanding linear classifier."""
+"""Expanding linear classifier for class-incremental learning."""
 
 from __future__ import annotations
 
@@ -12,9 +12,9 @@ def _torch():
 class ExpandingLinearClassifier:
     """Own a torch Linear-like module and preserve rows when classes are appended.
 
-    ARC's SimpleLinear initializes weights with Kaiming uniform using a linear
-    nonlinearity and initializes biases to zero. Expansion initializes a new full
-    matrix, then copies all old rows verbatim.
+    Weights use Kaiming-uniform initialization with a linear nonlinearity, and
+    biases are initialized to zero. Expansion initializes a new full matrix, then
+    copies all old rows verbatim.
     """
 
     def __init__(self, feature_dim: int, device) -> None:

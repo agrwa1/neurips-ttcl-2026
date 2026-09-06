@@ -14,11 +14,11 @@ def fixed_random_projection(
     dataset: str,
     backbone: str,
 ) -> np.ndarray:
-    """Create the reproducible Gaussian map used by the original experiment.
+    """Create a reproducible Gaussian projection map.
 
-    Dimensions larger than 64 retain the exact historical 64 directions and
-    append deterministically generated columns. The complete matrix is scaled
-    for its requested output dimension, matching the reference implementation.
+    Dimensions larger than 64 retain the same initial 64 directions and append
+    deterministically generated columns. The complete matrix is scaled for its
+    requested output dimension.
     """
 
     input_dim, output_dim = int(input_dim), int(output_dim)

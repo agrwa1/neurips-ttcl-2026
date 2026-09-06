@@ -22,7 +22,6 @@ def load_config(path: str | Path) -> dict[str, Any]:
     if not isinstance(config, dict):
         raise ConfigError(f"Expected a mapping in {config_path}.")
     config = deepcopy(config)
-    config["_config_path"] = str(config_path)
     validate_config(config)
     return config
 

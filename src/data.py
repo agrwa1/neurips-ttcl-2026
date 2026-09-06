@@ -1,4 +1,4 @@
-"""Dataset preparation and ARC-compatible image transforms."""
+"""Dataset preparation and image transforms."""
 
 from __future__ import annotations
 
@@ -126,7 +126,7 @@ def extract_feature_caches(
                     "feature_dim": int(backbone.spec.feature_dim),
                     "train_examples": int(len(train["labels"])),
                     "test_examples": int(len(test["labels"])),
-                    "transform": "arc_test_transform_for_both_train_and_test",
+                    "transform": "evaluation_transform_for_both_splits",
                     "backbone_provenance": backbone_provenance,
                     "runtime": runtime,
                     "environment": environment_metadata(root),
@@ -189,8 +189,8 @@ def feature_cache_complete(paths: FeatureCachePaths) -> bool:
     )
 
 
-def arc_train_transform():
-    """The non-normalized 224px transform used by ARC's released setup."""
+def train_transform():
+    """Return the non-normalized 224px stochastic training transform."""
 
     from torchvision import transforms
 
@@ -203,7 +203,7 @@ def arc_train_transform():
     )
 
 
-def arc_test_transform():
+def evaluation_transform():
     from torchvision import transforms
 
     return transforms.Compose(
@@ -399,8 +399,8 @@ def load_dataset_pair(name: str, dataset_config: dict):
         return _load_cifar_pair(
             name,
             dataset_config,
-            train_transform=arc_train_transform(),
-            test_transform=arc_test_transform(),
+            train_transform=train_transform(),
+            test_transform=evaluation_transform(),
         )
 
     if name == "imagenet_r":
@@ -415,10 +415,10 @@ def load_dataset_pair(name: str, dataset_config: dict):
                 dataset_config["root"],
                 manifest,
                 "train",
-                transform=arc_train_transform(),
+                transform=train_transform(),
             ),
             ImageNetRManifestDataset(
-                dataset_config["root"], manifest, "test", transform=arc_test_transform()
+                dataset_config["root"], manifest, "test", transform=evaluation_transform()
             ),
         )
     raise KeyError(f"Unknown dataset: {name}")
@@ -429,10 +429,10 @@ def load_feature_extraction_pair(name: str, dataset_config: dict):
 
     The ordinary training path intentionally augments training images.  A geometry
     cache must not give one sample a different feature every time it is read,
-    so both splits use the existing deterministic ARC evaluation transform here.
+    so both splits use the deterministic evaluation transform here.
     """
 
-    transform = arc_test_transform()
+    transform = evaluation_transform()
     if name == "cifar100":
         return _load_cifar_pair(
             name,
